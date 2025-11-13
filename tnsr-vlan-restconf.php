@@ -35,9 +35,8 @@ $config = [
     // Script Options
     'dry_run'         => false,  // Set to true to test without making changes
     'verify_ssl'      => false,  // Set to true in production with proper certs
-    'verbose'         => true,   // Show detailed output
-    //TODO: Add quiet mode to supress all output including whatever can be supressed from the API calls
-    //TODO: Potentially add a quiet mode that only shows the programmatically output ERROR, WARNING, SUCCESS messages
+    'verbose'         => true,   // Show detailed DEBUG output (ignored if quiet is true)
+    'quiet'           => false,  // Set to true to only show ERROR, WARNING, SUCCESS messages
 
 ];
 
@@ -45,7 +44,7 @@ $config = [
 
 function log_msg($message, $level = 'INFO') {
     global $config;
-    
+
     $colors = [
         'INFO'    => "\033[0;36m", // Cyan
         'SUCCESS' => "\033[0;32m", // Green
@@ -53,14 +52,22 @@ function log_msg($message, $level = 'INFO') {
         'ERROR'   => "\033[0;31m", // Red
         'DEBUG'   => "\033[0;37m", // Gray
     ];
-    
+
     $reset = "\033[0m";
     $color = $colors[$level] ?? $colors['INFO'];
-    
+
+    // In quiet mode, only show ERROR, WARNING, and SUCCESS messages
+    if ($config['quiet']) {
+        if (!in_array($level, ['ERROR', 'WARNING', 'SUCCESS'])) {
+            return;
+        }
+    }
+
+    // In non-quiet mode, suppress DEBUG if verbose is false
     if ($level === 'DEBUG' && !$config['verbose']) {
         return;
     }
-    
+
     echo "{$color}[{$level}]{$reset} {$message}\n";
 }
 
@@ -258,7 +265,7 @@ function create_subinterface($subnet) {
     log_msg("  VLAN ID:        {$vlanId}", 'INFO');
     log_msg("  Gateway IP:     {$gatewayIp}/64", 'INFO');
     log_msg("  Customer Link:  {$customerLinkIp}", 'INFO');
-    echo "\n";
+    if (!$config['quiet']) echo "\n";
     
     try {
         if ($config['use_restconf']) {
@@ -266,10 +273,10 @@ function create_subinterface($subnet) {
         } else {
             create_subinterface_ssh($vlanId, $subnet, $gatewayPrefix, $gatewayIp, $customerLinkIp);
         }
-        
+
         log_msg("✓ Subinterface created successfully", 'SUCCESS');
-        echo "\n";
-        
+        if (!$config['quiet']) echo "\n";
+
         // Verify
         if (verify_subinterface($subnet)) {
             log_msg("✓ Configuration verified successfully", 'SUCCESS');
@@ -521,7 +528,7 @@ function delete_subinterface($subnet) {
     log_msg("Deleting TNSR subinterface for VLAN {$vlanId}", 'INFO');
     log_msg("  Subnet:  {$subnet}", 'INFO');
     log_msg("  VLAN ID: {$vlanId}", 'INFO');
-    echo "\n";
+    if (!$config['quiet']) echo "\n";
     
     try {
         if ($config['use_restconf']) {
@@ -722,8 +729,8 @@ function verify_subinterface($subnet) {
     $gatewayIp = $gatewayPrefix . '::1';
     
     log_msg("Verifying subinterface configuration", 'INFO');
-    echo "\n";
-    
+    if (!$config['quiet']) echo "\n";
+
     $allPassed = true;
     
     if ($config['use_restconf']) {
@@ -813,16 +820,16 @@ function verify_subinterface($subnet) {
             log_msg("⚠ Warning checking via SSH: " . $e->getMessage(), 'WARNING');
         }
     }
-    
-    echo "\n";
+
+    if (!$config['quiet']) echo "\n";
     return $allPassed;
 }
 
 function list_subinterfaces() {
     global $config;
-    
+
     log_msg("Listing TNSR subinterfaces", 'INFO');
-    echo "\n";
+    if (!$config['quiet']) echo "\n";
     
     if ($config['use_restconf']) {
         try {
@@ -903,12 +910,12 @@ function list_subinterfaces() {
             log_msg("Error listing interfaces: " . $e->getMessage(), 'ERROR');
         }
     }
-    
-    echo "\n";
-    
+
+    if (!$config['quiet']) echo "\n";
+
     // Also list routes
     log_msg("Listing routes", 'INFO');
-    echo "\n";
+    if (!$config['quiet']) echo "\n";
     
     if ($config['use_restconf']) {
         try {
@@ -997,8 +1004,8 @@ function list_subinterfaces() {
             log_msg("Error listing routes: " . $e->getMessage(), 'ERROR');
         }
     }
-    
-    echo "\n";
+
+    if (!$config['quiet']) echo "\n";
 }
 
 function show_usage() {
