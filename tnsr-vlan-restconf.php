@@ -36,6 +36,9 @@ $config = [
     'dry_run'         => false,  // Set to true to test without making changes
     'verify_ssl'      => false,  // Set to true in production with proper certs
     'verbose'         => true,   // Show detailed output
+    //TODO: Add quiet mode to supress all output including whatever can be supressed from the API calls
+    //TODO: Potentially add a quiet mode that only shows the programmatically output ERROR, WARNING, SUCCESS messages
+
 ];
 
 // ==================== HELPER FUNCTIONS ====================
